@@ -5,9 +5,10 @@ CONFIG -= qt
 
 SOURCES += \
         main.cpp \
-        parse.cpp \
+        parser.cpp \
         virtualmachine.cpp
 
 HEADERS += \
-    parse.h \
+    keyword.h \
+    parser.h \
     virtualmachine.h

@@ -4,45 +4,45 @@
 
 VirtualMachine::VirtualMachine()
 {
-    memory = std::make_unique<std::vector<int>>();
+    memory = std::make_unique<MemoryDict>();
 }
 
-bool VirtualMachine::execute(const Dict &code) {
-    for(const auto &item : code) {
-        switch(item.first) {
-            case PUSH:
-                push(item.second);  break;
-            case POP:
-                pop(item.second);   break;
-            case ADD:
+bool VirtualMachine::execute(const CodeDict &code) {
+    for(auto i = 0ul; i < code.size(); ++i) {
+        switch(code[i].first) {
+            case Instructions::PUSH:
+                push(code[i].second);  break;
+            case Instructions::POP:
+                pop(code[i].second);   break;
+            case Instructions::ADD:
                 add();              break;
-            case MUL:
+            case Instructions::MUL:
                 mul();              break;
-            case SUB:
+            case Instructions::SUB:
                 sub();              break;
-            case DIV:
+            case Instructions::DIV:
                 div();              break;
-
-                // jmp
-                // jmpif
-
-            case EQUAL:
+            case Instructions::JMP:
+                jmp(code, i);       break;
+            case Instructions::JMPIF:
+                jmpif(code, i);     break;
+            case Instructions::EQUAL:
                 equal();            break;
-            case LARGER:
+            case Instructions::LARGER:
                 larger();           break;
-            case AND:
+            case Instructions::AND:
                 andOp();            break;
-            case OR:
+            case Instructions::OR:
                 orOp();             break;
-            case NOT:
+            case Instructions::NOT:
                 notOp();            break;
-            case REG:
-                reg();              break;
-            case PUSHN:
-                pushN(item.second); break;
-            case GET:
+            case Instructions::REG:
+                reg(Type(code[i].second));  break;
+            case Instructions::PUSHN:
+                pushN(code[i].second); break;
+            case Instructions::GET:
                 get();              break;
-            case PUT:
+            case Instructions::PUT:
                 put();              break;
 
             default:
@@ -60,7 +60,7 @@ void VirtualMachine::push(int var) {
 
 void VirtualMachine::pop(int var) {
     auto top = stack.top();
-    memory->at(var) = top;
+    memory->at(var).second = top.second;
     stack.pop();
 }
 
@@ -80,9 +80,17 @@ void VirtualMachine::div() {
     stackOperation([](int first, int second) { return first / second; });
 }
 
-// jmp
-//jmpif
+void VirtualMachine::jmp(const CodeDict &code, ulong &current) {
+    current = code[current].second - 1;
+}
 
+void VirtualMachine::jmpif(const CodeDict &code, ulong &current) {
+    if(stack.top().second) {
+        current = code[current].second - 1;
+    }
+
+    stack.pop();
+}
 
 void VirtualMachine::equal() {
     stackOperation([](int first, int second) { return first == second; });
@@ -102,35 +110,41 @@ void VirtualMachine::orOp() {
 
 void VirtualMachine::notOp() {
     auto top = stack.top();
-    stack.push(!top);
     stack.pop();
+    stack.push({ top.first, !top.second });
 }
 
-void VirtualMachine::reg() {
-    memory->push_back(0);
+void VirtualMachine::reg(Type type) {
+    memory->push_back({type, 0});
 }
 
 void VirtualMachine::pushN(int number) {
-    stack.push(number);
+    stack.push({ Type::INT, number });
 }
 
 void VirtualMachine::get() {
     auto value = int();
     std::cin >> value;
-    stack.push(value);
+    stack.push({ Type::INT, value });
 }
 
 void VirtualMachine::put() {
-    int top = stack.top();
-    std::cout << top;
+    auto top = stack.top();
+
+    if(top.first == Type::CHAR) {
+        std::cout << char(top.second);
+    } else {
+        std::cout << top.second;
+    }
+
     stack.pop();
 }
 
 void VirtualMachine::stackOperation(std::function<int (int, int)> operation) {
-    auto first = stack.top();
+    auto left = stack.top();
     stack.pop();
-    auto second =stack.top();
+    auto right = stack.top();
     stack.pop();
 
-    stack.push(operation(first, second));
+    stack.push({ left.first, operation(left.second, right.second) });
 }
