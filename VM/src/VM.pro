@@ -9,6 +9,7 @@ SOURCES += \
         virtualmachine.cpp
 
 HEADERS += \
+    exceptions.h \
     keyword.h \
     parser.h \
     virtualmachine.h
